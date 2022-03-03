@@ -1,0 +1,48 @@
+<idea-plugin>
+    <id>com.github.affishaikh.pactdslgenerator</id>
+    <name>pact-dsl-generator</name>
+    <vendor>affishaikh</vendor>
+
+    <description><![CDATA[
+         <p>This plugin provides the ability to create builder classes for a Kotlin Class</p>
+         Steps:
+          <ol>
+              <li>ALT+ENTER on the class name</li>
+              <li>Select generate builder option</li>
+              <li>Choose the package</li>
+              <li>Builder will be generated in that package</li>
+          </ol>
+    ]]></description>
+
+    <change-notes>
+        <![CDATA[
+           version 1.0.2.RC
+           <br/>
+           <ul>
+           <li>Adds default values for properties with KotlinBuiltinType or BigDecimal</li>
+           <li>Adds the needed import statements for each property</li>
+           <li>Adds null value for nullable fields</li>
+           <li>Adds package statement</li>
+           </ul>
+           version 1.0.3.RC
+           <br/>
+           <ul>
+           <li>Adds default values for properties with all types of date and time Type</li>
+           <li>Adds default value for property with enum type</li>
+           </ul>
+         ]]>
+    </change-notes>
+
+    <!-- Product and plugin compatibility requirements -->
+    <!-- https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.kotlin</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <intentionAction>
+            <className>com.github.affishaikh.kotlinbuildergenerator.action.GeneratePactDsl</className>
+            <category>Kotlin</category>
+        </intentionAction>
+    </extensions>
+</idea-plugin>
