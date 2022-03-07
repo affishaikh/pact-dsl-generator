@@ -97,6 +97,56 @@ class GeneratePactDslTest {
         verifyIntentionResults(pactDsl, mapOf("SuccessResponse.kt" to testClass))
     }
 
+    @Test
+    fun `should create the pact dsl for a class having an array of objects`() {
+        val testClass = """
+            data class ObjWithArray(
+                val str: String,<caret>
+                val arr: List<SomeObj>
+            )
+
+            data class SomeObj(
+                val a: String,
+                val b: String
+            )
+        """.trimIndent()
+
+        val pactDsl = """
+            PactDslJsonBody()
+            .stringType("str")
+            .minArrayLike("arr", 1)
+            .stringType("a")
+            .stringType("b")
+            .closeArray()
+            .asBody()
+            
+        """.trimIndent()
+
+        verifyIntentionResults(pactDsl, mapOf("ObjWithArray.kt" to testClass))
+    }
+
+    @Test
+    fun `should create the pact dsl for a class having an array of string`() {
+        val testClass = """
+            data class ObjWithArray(
+                val str: String,
+                val arr: List<String>
+            )
+        """.trimIndent()
+
+        val pactDsl = """
+            PactDslJsonBody()
+            .stringType("str")
+            .array("arr")
+            .stringType()
+            .closeArray()
+            .asBody()
+            
+        """.trimIndent()
+
+        verifyIntentionResults(pactDsl, mapOf("ObjWithArray.kt" to testClass))
+    }
+
     private fun verifyIntentionResults(expectedBuilder: String, testClasses: Map<String, String>) {
         testClasses.map {
             fixture.configureByText(it.key, it.value)

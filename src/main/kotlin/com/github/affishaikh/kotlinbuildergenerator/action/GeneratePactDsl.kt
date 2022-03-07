@@ -1,7 +1,10 @@
 package com.github.affishaikh.kotlinbuildergenerator.action
 
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants
+import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.ARRAY_OF_OBJECT_STARTING
+import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.ARRAY_STARTING
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.AS_BODY
+import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.CLOSE_ARRAY
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.CLOSE_OBJECT
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.NEW_LINE
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.OBJECT_STARTING
@@ -58,16 +61,39 @@ class GeneratePactDsl : SelfTargetingIntention<KtClass>(
     private fun createDslFromParams(parameters: List<Parameter>, staring: String = Constants.BODY_STARTING): String {
 
         return parameters.fold(staring) { result, parameter ->
-            if (typeChecker.doesNeedABuilder(parameter.type)) {
-                createDslFromParams(
+            when {
+                typeChecker.isClassType(parameter.type) -> createDslFromParams(
                     parameter.type.properties(),
                     "$result${getDslPartForSingleValueTypes(OBJECT_STARTING, parameter.name)}"
                 ).let {
                     listOf(it, CLOSE_OBJECT, NEW_LINE, AS_BODY).joinToString("")
                 }
-            } else {
-                val dslPart = defaultValuesFactory.defaultValueForPactDsl(parameter.type)
-                "$result${getDslPartForSingleValueTypes(dslPart, parameter.name)}"
+
+                typeChecker.isArrayOfClassType(parameter.type) -> createDslFromParams(
+                    parameter.type.arguments.first().type.properties(),
+                    "$result${getDslPartForArrayTypes(ARRAY_OF_OBJECT_STARTING, parameter.name)}"
+                ).let {
+                    listOf(it, CLOSE_ARRAY, NEW_LINE, AS_BODY).joinToString("")
+                }
+
+                typeChecker.isArray(parameter.type) -> {
+                    val dslPart = defaultValuesFactory.defaultValueForPactDsl(parameter.type.arguments.first().type)
+
+                    listOf(
+                        result,
+                        getDslPartForSingleValueTypes(ARRAY_STARTING, parameter.name),
+                        getDslPartForSingleValueTypes(dslPart, ""),
+                        NEW_LINE,
+                        CLOSE_ARRAY,
+                        NEW_LINE,
+                        AS_BODY
+                    ).joinToString("")
+                }
+
+                else -> {
+                    val dslPart = defaultValuesFactory.defaultValueForPactDsl(parameter.type)
+                    "$result${getDslPartForSingleValueTypes(dslPart, parameter.name)}"
+                }
             }
         }.let {
             "$it$NEW_LINE"
@@ -83,7 +109,17 @@ class GeneratePactDsl : SelfTargetingIntention<KtClass>(
             Constants.CLOSING_BRACKET
         ).joinToString("")
 
-    private fun stringify(name: String) = "\"${name}\""
+    private fun getDslPartForArrayTypes(pactDslType: String, name: String) =
+        listOf(
+            NEW_LINE,
+            pactDslType,
+            Constants.OPENING_BRACKET,
+            stringify(name),
+            ", 1",
+            Constants.CLOSING_BRACKET
+        ).joinToString("")
+
+    private fun stringify(name: String) = if (name == "") "" else "\"${name}\""
 
     private fun KotlinType.properties(): List<Parameter> {
         return getConstructorParameters(this).map { valueParam ->

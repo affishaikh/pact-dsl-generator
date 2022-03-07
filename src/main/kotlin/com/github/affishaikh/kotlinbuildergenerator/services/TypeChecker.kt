@@ -22,7 +22,7 @@ class TypeChecker {
         return parameterType.constructor.declarationDescriptor?.name?.identifier == "BigDecimal"
     }
 
-    fun doesNeedABuilder(it: KotlinType) =
+    fun isClassType(it: KotlinType) =
         !isKotlinBuiltinType(it) && it.toClassDescriptor?.unsubstitutedPrimaryConstructor?.valueParameters?.isNotEmpty() ?: false
 
     fun isNullableInt(parameterType: KotlinType): Boolean {
@@ -51,4 +51,8 @@ class TypeChecker {
             isBigDecimal(type) ||
             isEnumClass(type)
     }
+
+    fun isArrayOfClassType(type: KotlinType) = isArray(type) && isClassType(type.arguments.first().type)
+
+    fun isArray(type: KotlinType) = KotlinBuiltIns.isListOrNullableList(type) || KotlinBuiltIns.isSetOrNullableSet(type)
 }

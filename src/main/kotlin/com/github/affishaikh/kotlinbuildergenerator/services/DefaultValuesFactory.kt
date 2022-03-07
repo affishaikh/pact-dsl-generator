@@ -1,6 +1,5 @@
 package com.github.affishaikh.kotlinbuildergenerator.services
 
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.BOOLEAN_TYPE
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.NUMBER_TYPE
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.STRING_TYPE
@@ -31,7 +30,7 @@ class DefaultValuesFactory {
             typeChecker.isEnumClass(parameterType) -> valueForEnum(parameterType)
             typeChecker.isDateTimeType(parameterType) -> initiateWithNow(parameterType)
             KotlinBuiltIns.isNullableAny(parameterType) -> "null"
-            typeChecker.doesNeedABuilder(parameterType) -> "${parameterType.toString().replace("?", "")}Builder().build()"
+            typeChecker.isClassType(parameterType) -> "${parameterType.toString().replace("?", "")}Builder().build()"
             parameterType.isMarkedNullable -> "null"
             else -> ""
         }
