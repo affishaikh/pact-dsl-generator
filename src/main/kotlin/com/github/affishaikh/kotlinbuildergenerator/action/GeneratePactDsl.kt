@@ -4,10 +4,7 @@ import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.AS_BODY
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.BODY_STARTING
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.NEW_LINE
 import com.github.affishaikh.kotlinbuildergenerator.domain.Parameter
-import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.ArrayOfClassType
-import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.ArrayType
-import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.ObjectType
-import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.Type
+import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.*
 import com.github.affishaikh.kotlinbuildergenerator.services.DefaultValuesFactory
 import com.github.affishaikh.kotlinbuildergenerator.services.FileService
 import com.github.affishaikh.kotlinbuildergenerator.services.TypeChecker
@@ -57,12 +54,24 @@ class GeneratePactDsl : SelfTargetingIntention<KtClass>(
 
         return parameters.mapIndexed { i, it ->
             it.dslString().let {
-                if (parameters[i] is ObjectType && i < (parameters.size - 1) && parameters[i + 1] !is ObjectType) listOf(
-                    it,
-                    NEW_LINE,
-                    AS_BODY
-                ).joinToString("")
-                else it
+                when {
+                    (parameters[i] is ObjectType && i < (parameters.size - 1) && parameters[i + 1] !is CompositeType) -> listOf(
+                        it,
+                        NEW_LINE,
+                        AS_BODY
+                    ).joinToString("")
+                    (parameters[i] is ArrayType && i < (parameters.size - 1) && parameters[i + 1] !is CompositeType) -> listOf(
+                        it,
+                        NEW_LINE,
+                        AS_BODY
+                    ).joinToString("")
+                    (parameters[i] is ArrayOfClassType && i < (parameters.size - 1) && parameters[i + 1] !is CompositeType) -> listOf(
+                        it,
+                        NEW_LINE,
+                        AS_BODY
+                    ).joinToString("")
+                    else -> it
+                }
             }
         }.joinToString("")
     }

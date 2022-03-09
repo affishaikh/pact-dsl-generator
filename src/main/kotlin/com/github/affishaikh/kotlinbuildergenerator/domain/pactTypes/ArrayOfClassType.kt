@@ -2,7 +2,7 @@ package com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes
 
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants
 
-data class ArrayOfClassType(val name: String? = null, val types: List<Type>) : Type {
+data class ArrayOfClassType(val name: String? = null, val types: List<Type>) : CompositeType {
 
     override fun dslString() = listOf(
         Constants.NEW_LINE,
