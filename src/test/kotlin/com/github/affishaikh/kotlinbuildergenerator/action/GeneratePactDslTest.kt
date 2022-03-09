@@ -63,7 +63,6 @@ class GeneratePactDslTest {
             .stringType("scope")
             .stringType("refresh_token")
             .numberType("refresh_token_expires_in")
-            
         """.trimIndent()
 
         verifyIntentionResults(pactDsl, mapOf("Response.kt" to testClass))
@@ -91,7 +90,6 @@ class GeneratePactDslTest {
             .closeObject()
             .asBody()
             .stringType("refno")
-            
         """.trimIndent()
 
         verifyIntentionResults(pactDsl, mapOf("SuccessResponse.kt" to testClass))
@@ -118,8 +116,6 @@ class GeneratePactDslTest {
             .stringType("a")
             .stringType("b")
             .closeArray()
-            .asBody()
-            
         """.trimIndent()
 
         verifyIntentionResults(pactDsl, mapOf("ObjWithArray.kt" to testClass))
@@ -140,8 +136,37 @@ class GeneratePactDslTest {
             .array("arr")
             .stringType()
             .closeArray()
-            .asBody()
+        """.trimIndent()
+
+        verifyIntentionResults(pactDsl, mapOf("ObjWithArray.kt" to testClass))
+    }
+
+    @Test
+    fun `should not add as body if the next one is also an object`() {
+        val testClass = """
+            data class Obj(
+                val str: String,
+                val obj: SomeObj,
+                val obj1: SomeObj
+            )
             
+            data class SomeObj(
+                val a: String,
+                val b: String
+            )
+        """.trimIndent()
+
+        val pactDsl = """
+            PactDslJsonBody()
+            .stringType("str")
+            .`object`("obj")
+            .stringType("a")
+            .stringType("b")
+            .closeObject()
+            .`object`("obj1")
+            .stringType("a")
+            .stringType("b")
+            .closeObject()
         """.trimIndent()
 
         verifyIntentionResults(pactDsl, mapOf("ObjWithArray.kt" to testClass))

@@ -1,8 +1,8 @@
 package com.github.affishaikh.kotlinbuildergenerator.services
 
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.BOOLEAN_TYPE
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.NUMBER_TYPE
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.STRING_TYPE
+import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.NumberType
+import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.StringType
+import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.Type
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
 import org.jetbrains.kotlin.types.KotlinType
@@ -36,18 +36,21 @@ class DefaultValuesFactory {
         }
     }
 
-    fun defaultValueForPactDsl(parameterType: KotlinType): String {
+    fun getTokenFor(parameterType: KotlinType, name: String? = null): Type {
         return when {
-            KotlinBuiltIns.isBooleanOrNullableBoolean(parameterType) -> BOOLEAN_TYPE
-            KotlinBuiltIns.isCharOrNullableChar(parameterType) -> STRING_TYPE
-            KotlinBuiltIns.isDoubleOrNullableDouble(parameterType) -> NUMBER_TYPE
-            KotlinBuiltIns.isFloatOrNullableFloat(parameterType) -> NUMBER_TYPE
-            typeChecker.isNullableInt(parameterType) -> NUMBER_TYPE
-            KotlinBuiltIns.isLongOrNullableLong(parameterType) -> NUMBER_TYPE
-            KotlinBuiltIns.isStringOrNullableString(parameterType) -> STRING_TYPE
-            typeChecker.isBigDecimal(parameterType) -> NUMBER_TYPE
-            typeChecker.isEnumClass(parameterType) -> STRING_TYPE
-            else -> ""
+            KotlinBuiltIns.isDoubleOrNullableDouble(parameterType) -> NumberType(name)
+            KotlinBuiltIns.isFloatOrNullableFloat(parameterType) -> NumberType(name)
+            typeChecker.isNullableInt(parameterType) -> NumberType(name)
+            KotlinBuiltIns.isLongOrNullableLong(parameterType) -> NumberType(name)
+            typeChecker.isBigDecimal(parameterType) -> NumberType(name)
+            KotlinBuiltIns.isCharOrNullableChar(parameterType) -> StringType(name)
+            KotlinBuiltIns.isStringOrNullableString(parameterType) -> StringType(name)
+            typeChecker.isEnumClass(parameterType) -> StringType(name)
+            else -> object : Type {
+                override fun dslString(): String {
+                    TODO("Not yet implemented")
+                }
+            }
         }
     }
 

@@ -1,15 +1,13 @@
 package com.github.affishaikh.kotlinbuildergenerator.action
 
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.ARRAY_OF_OBJECT_STARTING
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.ARRAY_STARTING
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.AS_BODY
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.CLOSE_ARRAY
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.CLOSE_OBJECT
+import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.BODY_STARTING
 import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.NEW_LINE
-import com.github.affishaikh.kotlinbuildergenerator.constants.Constants.OBJECT_STARTING
-import com.github.affishaikh.kotlinbuildergenerator.domain.ClassInfo
 import com.github.affishaikh.kotlinbuildergenerator.domain.Parameter
+import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.ArrayOfClassType
+import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.ArrayType
+import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.ObjectType
+import com.github.affishaikh.kotlinbuildergenerator.domain.pactTypes.Type
 import com.github.affishaikh.kotlinbuildergenerator.services.DefaultValuesFactory
 import com.github.affishaikh.kotlinbuildergenerator.services.FileService
 import com.github.affishaikh.kotlinbuildergenerator.services.TypeChecker
@@ -40,11 +38,8 @@ class GeneratePactDsl : SelfTargetingIntention<KtClass>(
 
     private fun generatePactDsl(element: KtClass): String {
         val classProperties = element.properties()
-        val pactDsl = listOf(ClassInfo(element.name!!, null, classProperties))
-            .joinToString("\n") {
-                createDslFromParams(it.parameters)
-            }
-        return pactDsl
+        val tokenizedProperties = tokenize(classProperties)
+        return "$BODY_STARTING${createDslFromParams(tokenizedProperties)}"
     }
 
     private fun KtClass.properties(): List<Parameter> {
@@ -58,68 +53,19 @@ class GeneratePactDsl : SelfTargetingIntention<KtClass>(
         fileService.createFile(element, classCode)
     }
 
-    private fun createDslFromParams(parameters: List<Parameter>, staring: String = Constants.BODY_STARTING): String {
+    private fun createDslFromParams(parameters: List<Type>): String {
 
-        return parameters.fold(staring) { result, parameter ->
-            when {
-                typeChecker.isClassType(parameter.type) -> createDslFromParams(
-                    parameter.type.properties(),
-                    "$result${getDslPartForSingleValueTypes(OBJECT_STARTING, parameter.name)}"
-                ).let {
-                    listOf(it, CLOSE_OBJECT, NEW_LINE, AS_BODY).joinToString("")
-                }
-
-                typeChecker.isArrayOfClassType(parameter.type) -> createDslFromParams(
-                    parameter.type.arguments.first().type.properties(),
-                    "$result${getDslPartForArrayTypes(ARRAY_OF_OBJECT_STARTING, parameter.name)}"
-                ).let {
-                    listOf(it, CLOSE_ARRAY, NEW_LINE, AS_BODY).joinToString("")
-                }
-
-                typeChecker.isArray(parameter.type) -> {
-                    val dslPart = defaultValuesFactory.defaultValueForPactDsl(parameter.type.arguments.first().type)
-
-                    listOf(
-                        result,
-                        getDslPartForSingleValueTypes(ARRAY_STARTING, parameter.name),
-                        getDslPartForSingleValueTypes(dslPart, ""),
-                        NEW_LINE,
-                        CLOSE_ARRAY,
-                        NEW_LINE,
-                        AS_BODY
-                    ).joinToString("")
-                }
-
-                else -> {
-                    val dslPart = defaultValuesFactory.defaultValueForPactDsl(parameter.type)
-                    "$result${getDslPartForSingleValueTypes(dslPart, parameter.name)}"
-                }
+        return parameters.mapIndexed { i, it ->
+            it.dslString().let {
+                if (parameters[i] is ObjectType && i < (parameters.size - 1) && parameters[i + 1] !is ObjectType) listOf(
+                    it,
+                    NEW_LINE,
+                    AS_BODY
+                ).joinToString("")
+                else it
             }
-        }.let {
-            "$it$NEW_LINE"
-        }
+        }.joinToString("")
     }
-
-    private fun getDslPartForSingleValueTypes(pactDslType: String, name: String) =
-        listOf(
-            NEW_LINE,
-            pactDslType,
-            Constants.OPENING_BRACKET,
-            stringify(name),
-            Constants.CLOSING_BRACKET
-        ).joinToString("")
-
-    private fun getDslPartForArrayTypes(pactDslType: String, name: String) =
-        listOf(
-            NEW_LINE,
-            pactDslType,
-            Constants.OPENING_BRACKET,
-            stringify(name),
-            ", 1",
-            Constants.CLOSING_BRACKET
-        ).joinToString("")
-
-    private fun stringify(name: String) = if (name == "") "" else "\"${name}\""
 
     private fun KotlinType.properties(): List<Parameter> {
         return getConstructorParameters(this).map { valueParam ->
@@ -129,4 +75,24 @@ class GeneratePactDsl : SelfTargetingIntention<KtClass>(
 
     private fun getConstructorParameters(parameterType: KotlinType): MutableList<ValueParameterDescriptor> =
         parameterType.toClassDescriptor?.unsubstitutedPrimaryConstructor?.valueParameters!!
+
+    private fun tokenize(parameters: List<Parameter>): List<Type> {
+        return parameters.fold(emptyList()) { acc, parameter ->
+            when {
+                typeChecker.isClassType(parameter.type) -> acc + ObjectType(
+                    parameter.name,
+                    tokenize(parameter.type.properties())
+                )
+                typeChecker.isArrayOfClassType(parameter.type) -> acc + ArrayOfClassType(
+                    parameter.name,
+                    tokenize(parameter.type.arguments.first().type.properties())
+                )
+                typeChecker.isArray(parameter.type) -> acc + ArrayType(
+                    parameter.name,
+                    defaultValuesFactory.getTokenFor(parameter.type.arguments.first().type)
+                )
+                else -> acc + defaultValuesFactory.getTokenFor(parameter.type, parameter.name)
+            }
+        }
+    }
 }
